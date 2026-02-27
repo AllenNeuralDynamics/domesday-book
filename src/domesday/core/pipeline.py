@@ -56,7 +56,7 @@ class Pipeline:
     async def add_snippet(
         self,
         text: str,
-        project: str,
+        project: str | None = None,
         *,
         author: str = "anonymous",
         tags: list[str] | None = None,
@@ -64,9 +64,10 @@ class Pipeline:
         snippet_type: models.SnippetType = models.SnippetType.PROSE,
     ) -> models.Snippet:
         """Add a single snippet: store, chunk, embed, index."""
+        resolved_project = self._resolve_project(project)
         snippet = models.Snippet(
             raw_text=text,
-            project=project,
+            project=resolved_project,
             author=author,
             tags=tags or [],
             source_file=source_file,
@@ -90,14 +91,14 @@ class Pipeline:
 
             # 4. Index in vector store with project metadata
             await self.vec_store.add_chunks(
-                chunks, embeddings, project=project, embedding_model=self.embedder.model
+                chunks, embeddings, project=resolved_project, embedding_model=self.embedder.model
             )
             logger.debug("Indexed %d chunks in vector store", len(chunks))
 
         logger.info(
             "Added snippet %s to project '%s' (%d chunks)",
             snippet.id[:8],
-            project,
+            resolved_project,
             len(chunks),
         )
         return snippet
@@ -105,7 +106,7 @@ class Pipeline:
     async def ingest_file(
         self,
         path: Path,
-        project: str,
+        project: str | None = None,
         *,
         author: str = "anonymous",
         delimiter: str | None = None,
@@ -115,6 +116,7 @@ class Pipeline:
         Supports .md, .txt, .py, .json, .csv, .yaml/.yml.
         Markdown files are split on '---' or '## ' headings by default.
         """
+        resolved_project = self._resolve_project(project)
         text = path.read_text(encoding="utf-8")
         suffix = path.suffix.lower()
         logger.debug(
@@ -144,7 +146,7 @@ class Pipeline:
                 continue
             snippet = await self.add_snippet(
                 section,
-                project=project,
+                project=resolved_project,
                 author=author,
                 source_file=str(path),
                 snippet_type=snippet_type,

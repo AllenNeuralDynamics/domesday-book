@@ -108,6 +108,16 @@ class Config(BaseSettings):
     retrieval: RetrievalConfig = RetrievalConfig()
     reranker: RerankerConfig = RerankerConfig()
 
+    def section(self, name: str) -> dict[str, Any]:
+        """Return a copy of a named configuration section as a plain dict.
+
+        Returns an empty dict if the section does not exist.
+        """
+        value = getattr(self, name, None)
+        if isinstance(value, pydantic.BaseModel):
+            return value.model_dump()
+        return {}
+
     @classmethod
     def settings_customise_sources(
         cls,
