@@ -3,16 +3,27 @@
 Reads domesday.toml (or env vars) and constructs the Pipeline
 with the requested backends. This is the only module that knows
 about concrete implementations.
+
+Sources (highest → lowest priority):
+  1. Init kwargs
+  2. Environment variables (prefix ``DOMESDAY_``, nested delimiter ``__``)
+  3. domesday.toml (or the path passed to ``Config.load``)
+  4. Field defaults
 """
 
 from __future__ import annotations
 
 import logging
-import os
-import tomllib
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+import pydantic
+from pydantic_settings import (
+    BaseSettings,
+    PydanticBaseSettingsSource,
+    SettingsConfigDict,
+    TomlConfigSettingsSource,
+)
 
 from domesday import chunking, embedders, generators
 from domesday.core import pipeline as core_pipeline
@@ -23,95 +34,131 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_PATH = Path("domesday.toml")
 
-DEFAULT_CONFIG: dict[str, Any] = {
-    "data_dir": "./data",
-    "default_project": "main",
-    "document_store": {
-        "backend": "sqlite",
-    },
-    "vector_store": {
-        "backend": "chroma",
-        "collection_name": "domesday",
-    },
-    "embedder": {
-        "backend": "voyage",
-        "model": "voyage-3-large",
-    },
-    "generator": {
-        "backend": "claude",
-        "model": "claude-sonnet-4-6",
-    },
-    "chunker": {
-        "max_tokens": 400,
-        "overlap_tokens": 50,
-    },
-    "retrieval": {
-        "min_score": 0.3,
-    },
-    "reranker": {
-        "enabled": False,
-        "model": "claude-haiku-4-5",
-        "relevance_threshold": 0.5,
-    },
-}
+
+# ---------------------------------------------------------------------------
+# Nested section models
+# ---------------------------------------------------------------------------
 
 
-@dataclass
-class Config:
-    """Parsed configuration with typed accessors."""
+class DocumentStoreConfig(pydantic.BaseModel):
+    backend: str = "sqlite"
+    path: Path | None = None
 
-    raw: dict[str, Any] = field(default_factory=lambda: dict(DEFAULT_CONFIG))
+
+class VectorStoreConfig(pydantic.BaseModel):
+    backend: str = "chroma"
+    collection_name: str = "domesday"
+    path: Path | None = None
+
+
+class EmbedderConfig(pydantic.BaseModel):
+    backend: str = "voyage"
+    model: str = "voyage-3-large"
+
+
+class GeneratorConfig(pydantic.BaseModel):
+    backend: str = "claude"
+    model: str = "claude-sonnet-4-6"
+
+
+class ChunkerConfig(pydantic.BaseModel):
+    max_tokens: int = 400
+    overlap_tokens: int = 50
+
+
+class RetrievalConfig(pydantic.BaseModel):
+    min_score: float = 0.3
+
+
+class RerankerConfig(pydantic.BaseModel):
+    enabled: bool = False
+    model: str = "claude-haiku-4-5"
+    relevance_threshold: float = 0.5
+
+
+# ---------------------------------------------------------------------------
+# Top-level settings
+# ---------------------------------------------------------------------------
+
+
+class Config(BaseSettings):
+    """Parsed configuration.
+
+    Sources (highest → lowest priority): init kwargs → env vars → TOML file → defaults.
+
+    Env vars use prefix ``DOMESDAY_`` and ``__`` as the nested delimiter, e.g.::
+
+        DOMESDAY_DATA_DIR=/tmp/data
+        DOMESDAY_EMBEDDER__BACKEND=local
+        DOMESDAY_EMBEDDER__MODEL=all-MiniLM-L6-v2
+    """
+
+    model_config = SettingsConfigDict(
+        env_prefix="DOMESDAY_",
+        env_nested_delimiter="__",
+        toml_file=str(DEFAULT_CONFIG_PATH),
+        toml_file_encoding="utf-8",
+    )
+
+    data_dir: Path = Path("./data")
+    default_project: str = "main"
+    document_store: DocumentStoreConfig = DocumentStoreConfig()
+    vector_store: VectorStoreConfig = VectorStoreConfig()
+    embedder: EmbedderConfig = EmbedderConfig()
+    generator: GeneratorConfig = GeneratorConfig()
+    chunker: ChunkerConfig = ChunkerConfig()
+    retrieval: RetrievalConfig = RetrievalConfig()
+    reranker: RerankerConfig = RerankerConfig()
+
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (init_settings, env_settings, TomlConfigSettingsSource(settings_cls))
 
     @classmethod
     def load(cls, path: Path | None = None) -> Config:
-        """Load from TOML file, falling back to defaults."""
+        """Load config, optionally from a non-default TOML path."""
         if path is None:
-            path = DEFAULT_CONFIG_PATH
+            return cls()
+        # Inject a custom TOML source for the given path
+        toml_source = TomlConfigSettingsSource(cls, toml_file=path)
 
-        raw = dict(DEFAULT_CONFIG)
+        class _CustomToml(cls):  # type: ignore[valid-type]
+            @classmethod
+            def settings_customise_sources(
+                cls2,
+                settings_cls: type[BaseSettings],
+                init_settings: PydanticBaseSettingsSource,
+                env_settings: PydanticBaseSettingsSource,
+                dotenv_settings: PydanticBaseSettingsSource,
+                file_secret_settings: PydanticBaseSettingsSource,
+            ) -> tuple[PydanticBaseSettingsSource, ...]:
+                return (init_settings, env_settings, toml_source)
 
-        if path.exists():
-            with open(path, "rb") as f:
-                user_cfg = tomllib.load(f)
-            # Shallow merge per section
-            for key, value in user_cfg.items():
-                if isinstance(value, dict) and isinstance(raw.get(key), dict):
-                    raw[key] = {**raw[key], **value}
-                else:
-                    raw[key] = value
-            logger.info("Loaded config from %s", path)
-        else:
-            logger.debug("No config file at %s, using defaults", path)
+        return _CustomToml()
 
-        # Env var overrides (flat, for CI/deployment)
-        env_map: dict[str, str | tuple[str, str]] = {
-            "DOMESDAY_DATA_DIR": "data_dir",
-            "DOMESDAY_DEFAULT_PROJECT": "default_project",
-            "DOMESDAY_EMBEDDER_BACKEND": ("embedder", "backend"),
-            "DOMESDAY_EMBEDDER_MODEL": ("embedder", "model"),
-            "DOMESDAY_GENERATOR_MODEL": ("generator", "model"),
-        }
-        for env_key, config_path in env_map.items():
-            val = os.environ.get(env_key)
-            if val is not None:
-                if isinstance(config_path, tuple):
-                    raw[config_path[0]][config_path[1]] = val
-                else:
-                    raw[config_path] = val
-                logger.debug("Env override: %s = %s", env_key, val)
-
-        return cls(raw=raw)
-
-    @property
-    def data_dir(self) -> Path:
-        return Path(self.raw["data_dir"])
+    # ------------------------------------------------------------------
+    # Convenience accessors (backward-compatible)
+    # ------------------------------------------------------------------
 
     @property
     def min_score(self) -> float:
-        return float(self.raw["retrieval"]["min_score"])
+        return self.retrieval.min_score
 
     def section(self, name: str) -> dict[str, Any]:
-        return dict(self.raw.get(name, {}))
+        """Return a named section as a plain dict (for factory functions)."""
+        val = getattr(self, name, None)
+        if val is None:
+            return {}
+        if isinstance(val, BaseModel):
+            return val.model_dump()
+        return {}
 
 
 # -------------------------------------------------------------------
@@ -238,7 +285,7 @@ async def build_pipeline(config_path: Path | None = None) -> core_pipeline.Pipel
     logger.info(
         "Building pipeline (data_dir=%s, project=%s)",
         cfg.data_dir,
-        cfg.raw["default_project"],
+        cfg.default_project,
     )
 
     doc_store = _build_doc_store(cfg)
@@ -254,7 +301,7 @@ async def build_pipeline(config_path: Path | None = None) -> core_pipeline.Pipel
 
     retrieval_cfg = cfg.section("retrieval")
     min_score = float(retrieval_cfg["min_score"])
-    default_project = str(cfg.raw["default_project"])
+    default_project = cfg.default_project
 
     pipeline = core_pipeline.Pipeline(
         doc_store=doc_store,
