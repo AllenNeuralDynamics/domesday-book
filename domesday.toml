@@ -15,7 +15,7 @@ backend = "chroma"
 
 [embedder]
 backend = "voyage"             # voyage | openai | local
-model = "voyage-4-large"       # voyage-4-large | text-embedding-3-small | all-MiniLM-L6-v2
+model = "voyage-4-lite"       # voyage-4-large | text-embedding-3-small | all-MiniLM-L6-v2
 
 [generator]
 backend = "claude"

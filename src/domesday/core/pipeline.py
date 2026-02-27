@@ -56,19 +56,17 @@ class Pipeline:
     async def add_snippet(
         self,
         text: str,
+        project: str,
         *,
-        project: str | None = None,
         author: str = "anonymous",
         tags: list[str] | None = None,
         source_file: str | None = None,
         snippet_type: models.SnippetType = models.SnippetType.PROSE,
     ) -> models.Snippet:
         """Add a single snippet: store, chunk, embed, index."""
-        resolved_project = self._resolve_project(project)
-
         snippet = models.Snippet(
             raw_text=text,
-            project=resolved_project,
+            project=project,
             author=author,
             tags=tags or [],
             source_file=source_file,
@@ -92,14 +90,14 @@ class Pipeline:
 
             # 4. Index in vector store with project metadata
             await self.vec_store.add_chunks(
-                chunks, embeddings, project=resolved_project
+                chunks, embeddings, project=project, embedding_model=self.embedder.model
             )
             logger.debug("Indexed %d chunks in vector store", len(chunks))
 
         logger.info(
             "Added snippet %s to project '%s' (%d chunks)",
             snippet.id[:8],
-            resolved_project,
+            project,
             len(chunks),
         )
         return snippet
@@ -107,8 +105,8 @@ class Pipeline:
     async def ingest_file(
         self,
         path: Path,
+        project: str,
         *,
-        project: str | None = None,
         author: str = "anonymous",
         delimiter: str | None = None,
     ) -> list[models.Snippet]:
@@ -158,8 +156,8 @@ class Pipeline:
     async def ingest_directory(
         self,
         directory: Path,
+        project: str,
         *,
-        project: str | None = None,
         author: str = "anonymous",
         extensions: set[str] | None = None,
         recursive: bool = True,
@@ -179,7 +177,7 @@ class Pipeline:
             "Bulk ingest: %d files in %s (project=%s, extensions=%s)",
             len(files),
             directory,
-            self._resolve_project(project),
+            project,
             extensions,
         )
 

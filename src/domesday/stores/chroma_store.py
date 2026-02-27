@@ -23,13 +23,12 @@ class ChromaVectorStore:
     and reconstruction of SearchResults.
 
     Usage:
-        store = ChromaVectorStore(path="./data/chroma")
+        store = ChromaVectorStore(path="./data/chroma", collection_name="domesday", embedding_model="voyage-3-large")
         store.initialize()
     """
 
     path: str | Path
-    collection_name: str = "domesday"
-    embedding_model: str = ""  # set by pipeline, stored in collection metadata
+    collection_name: str
     _collection: chromadb.Collection | None = field(
         default=None, init=False, repr=False
     )
@@ -43,43 +42,18 @@ class ChromaVectorStore:
         """
         client = chromadb.PersistentClient(path=str(self.path))
 
-        try:
-            existing = client.get_collection(name=self.collection_name)
-            stored_model = (existing.metadata or {}).get("embedding_model", "")
+        self._collection = client.get_or_create_collection(
+            name=self.collection_name,
+            metadata={
+                "hnsw:space": "cosine",
+            },
+        )
 
-            if (
-                stored_model
-                and self.embedding_model
-                and stored_model != self.embedding_model
-            ):
-                raise RuntimeError(
-                    f"Embedding model mismatch: collection was built with "
-                    f"'{stored_model}' but config specifies '{self.embedding_model}'. "
-                    f"Either switch back, re-embed with `domes reindex`, or use a "
-                    f"different collection_name."
-                )
-
-            self._collection = existing
-            logger.info(
-                "Chroma collection '%s' ready (%d vectors, model=%s)",
-                self.collection_name,
-                self._collection.count(),
-                stored_model or "unknown",
-            )
-        except Exception as exc:
-            if "does not exist" in str(exc).lower() or self._collection is None:
-                self._collection = client.get_or_create_collection(
-                    name=self.collection_name,
-                    metadata={
-                        "hnsw:space": "cosine",
-                        "embedding_model": self.embedding_model,
-                    },
-                )
-                logger.info(
-                    "Created Chroma collection '%s' (model=%s)",
-                    self.collection_name,
-                    self.embedding_model,
-                )
+        logger.info(
+            "Chroma collection '%s' ready (%d vectors)",
+            self.collection_name,
+            self._collection.count(),
+        )
 
     @property
     def collection(self) -> chromadb.Collection:
@@ -96,7 +70,8 @@ class ChromaVectorStore:
         chunks: Sequence[models.Chunk],
         embeddings: Sequence[list[float]],
         *,
-        project: str = "default",
+        project: str,
+        embedding_model: str,
     ) -> None:
         if not chunks:
             logger.debug("No chunks to add, skipping")
@@ -111,7 +86,7 @@ class ChromaVectorStore:
                     "snippet_id": c.snippet_id,
                     "chunk_index": c.chunk_index,
                     "project": project,
-                    "embedding_model": self.embedding_model,
+                    "embedding_model": embedding_model,
                 }
                 for c in chunks
             ],

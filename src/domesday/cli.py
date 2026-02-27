@@ -239,7 +239,7 @@ def search(
             pipeline = await config.build_pipeline(ctx.obj["config_path"])
             project = "__all__" if all_projects else ctx.obj["project"]
             results = await pipeline.search(
-                query, project=project, k=n, tags=tag_list, min_score=cfg.min_score
+                query, project=project, k=n, tags=tag_list, min_score=cfg.retrieval.min_score
             )
 
         if not results:
@@ -299,7 +299,7 @@ def ask(
             pipeline = await config.build_pipeline(ctx.obj["config_path"])
             project = "__all__" if all_projects else ctx.obj["project"]
             response = await pipeline.ask(
-                question, project=project, k=n, min_score=cfg.min_score
+                question, project=project, k=n, min_score=cfg.retrieval.min_score
             )
 
         typer.echo(f"\n{response.answer}\n")

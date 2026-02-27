@@ -39,7 +39,7 @@ class VoyageEmbedder:
     Env: VOYAGE_API_KEY
     """
 
-    model: str = "voyage-3-large"
+    model: str = "voyage-4-lite"
 
     @property
     def dimension(self) -> int:

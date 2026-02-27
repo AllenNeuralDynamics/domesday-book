@@ -74,7 +74,8 @@ class VectorStore(Protocol):
         chunks: Sequence[models.Chunk],
         embeddings: Sequence[list[float]],
         *,
-        project: str = "default",
+        project: str,
+        embedding_model: str,
     ) -> None: ...
 
     async def search(
@@ -93,7 +94,7 @@ class VectorStore(Protocol):
         ...
 
     def count(self) -> int: ...
-
+    def initialize(self) -> None: ...  # for stores that require setup before use
 
 # ---------------------------------------------------------------------------
 # Embedding
@@ -104,6 +105,11 @@ class VectorStore(Protocol):
 class Embedder(Protocol):
     """Converts text to dense vector embeddings."""
 
+    @property
+    def model(self) -> str:
+        """Model name or identifier."""
+        ...
+        
     @property
     def dimension(self) -> int:
         """Dimensionality of the output vectors."""

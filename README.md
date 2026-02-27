@@ -49,7 +49,7 @@ domes -p vbo ingest ./project-notes/ --author ben
 domes -p vbo search "VBO timestamp issues"
 
 # Ask a question (retrieve matching snippets → LLM generates answer with citations)
-domes -p vbo ask "What are the known caveats with the VBO dataset?"
+domes -p vbo ask "What are the known caveats with the dataset?"
 
 # Actual answer from Claude Sonnet 4.6
 # **VBO Dataset Timestamp Error**: The VBO dataset has an **off-by-one error in timestamps** for any data dated **before 2023-06-01**. [snippet-1fffb1]  
