@@ -112,6 +112,7 @@ class InMemoryVecStore:
         embeddings: Sequence[list[float]],
         *,
         project: str = "default",
+        embedding_model: str = "",
     ) -> None:
         for chunk, emb in zip(chunks, embeddings):
             self._chunks[chunk.id] = (chunk.snippet_id, project, emb)
@@ -154,6 +155,10 @@ class FixedEmbedder:
     def __init__(self, dim: int = 4, value: float = 0.5) -> None:
         self._dim = dim
         self._value = value
+
+    @property
+    def model(self) -> str:
+        return "test-embedder"
 
     @property
     def dimension(self) -> int:
