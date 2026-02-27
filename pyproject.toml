@@ -28,6 +28,10 @@ classifiers = [
     "Operating System :: POSIX :: Linux",
 ]
 
+[project.urls]
+Repository = "https://github.com/AllenNeuralDynamics/domesday-book"
+Issues = "https://github.com/AllenNeuralDynamics/domesday-book/issues"
+
 [project.license]
 text = "MIT"
 
