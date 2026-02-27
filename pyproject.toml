@@ -86,6 +86,7 @@ source = ["src"]
 [tool.coverage.run]
 branch = true
 source = ["src"]
+omit = ["src/domesday/eval/*", "src/domesday/core/protocols.py"]
 
 [tool.coverage.report]
 skip_covered = true

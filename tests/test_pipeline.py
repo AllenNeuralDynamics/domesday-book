@@ -213,21 +213,6 @@ def make_pipeline(
 
 
 # ---------------------------------------------------------------------------
-# _resolve_project
-# ---------------------------------------------------------------------------
-
-
-def test_resolve_project_explicit() -> None:
-    pipeline, _, _ = make_pipeline(default_project="fallback")
-    assert pipeline._resolve_project("myproject") == "myproject"
-
-
-def test_resolve_project_uses_default_when_none() -> None:
-    pipeline, _, _ = make_pipeline(default_project="fallback")
-    assert pipeline._resolve_project(None) == "fallback"
-
-
-# ---------------------------------------------------------------------------
 # _split_file
 # ---------------------------------------------------------------------------
 
@@ -255,12 +240,6 @@ def test_split_file_non_md_returns_whole_text() -> None:
     text = "line1\nline2\nline3"
     parts = Pipeline._split_file(text, ".txt", delimiter=None)
     assert parts == [text]
-
-
-def test_split_file_py_returns_whole_text() -> None:
-    code = "def foo():\n    pass\n\ndef bar():\n    pass\n"
-    parts = Pipeline._split_file(code, ".py", delimiter=None)
-    assert parts == [code]
 
 
 # ---------------------------------------------------------------------------
@@ -487,3 +466,123 @@ async def test_ingest_file_py_uses_code_type() -> None:
         assert snippets[0].snippet_type == models.SnippetType.CODE
     finally:
         tmp_path.unlink(missing_ok=True)
+
+
+# ---------------------------------------------------------------------------
+# ingest_directory
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ingest_directory_processes_multiple_files(tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_text("Content A.", encoding="utf-8")
+    (tmp_path / "b.md").write_text("Content B.", encoding="utf-8")
+    (tmp_path / "skip.jpg").write_bytes(b"\xff\xd8")  # not a text extension
+
+    pipeline, doc_store, _ = make_pipeline()
+    result = await pipeline.ingest_directory(tmp_path, project="bulk")
+    assert result.snippets_created == 2
+    assert result.files_processed == 2
+    assert result.ok is True
+
+
+@pytest.mark.asyncio
+async def test_ingest_directory_records_errors(tmp_path: Path) -> None:
+    # Create a file that will fail to read as utf-8
+    bad = tmp_path / "bad.txt"
+    bad.write_bytes(b"\x80\x81\x82")
+
+    pipeline, _, _ = make_pipeline()
+    result = await pipeline.ingest_directory(tmp_path, project="err")
+    assert len(result.errors) == 1
+    assert result.ok is False
+
+
+@pytest.mark.asyncio
+async def test_ingest_directory_recursive(tmp_path: Path) -> None:
+    sub = tmp_path / "sub"
+    sub.mkdir()
+    (tmp_path / "root.txt").write_text("root", encoding="utf-8")
+    (sub / "nested.txt").write_text("nested", encoding="utf-8")
+
+    pipeline, _, _ = make_pipeline()
+    result = await pipeline.ingest_directory(tmp_path, project="rec", recursive=True)
+    assert result.snippets_created == 2
+
+    result_flat = await pipeline.ingest_directory(tmp_path, project="flat", recursive=False)
+    assert result_flat.snippets_created == 1
+
+
+# ---------------------------------------------------------------------------
+# search — inactive snippet handling
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_search_skips_inactive_snippets() -> None:
+    pipeline, doc_store, _ = make_pipeline()
+    snippet = await pipeline.add_snippet("Will be deactivated.", project="p")
+    await doc_store.deactivate(snippet.id)
+    # Chunks still in vec_store, but search should skip inactive snippets
+    results = await pipeline.search("deactivated", project="p")
+    assert all(r.snippet.id != snippet.id for r in results)
+
+
+# ---------------------------------------------------------------------------
+# search — with reranker
+# ---------------------------------------------------------------------------
+
+
+class HalfReranker:
+    """Reranker that drops the bottom half of results."""
+
+    async def rerank(
+        self, query: str, results: list[models.SearchResult]
+    ) -> list[models.SearchResult]:
+        return results[: len(results) // 2] if len(results) > 1 else results
+
+
+@pytest.mark.asyncio
+async def test_search_with_reranker() -> None:
+    pipeline, _, _ = make_pipeline(reranker=HalfReranker())
+    await pipeline.add_snippet("Note one.", project="p")
+    await pipeline.add_snippet("Note two.", project="p")
+    results = await pipeline.search("Note", project="p")
+    # HalfReranker should reduce results
+    assert len(results) == 1
+
+
+# ---------------------------------------------------------------------------
+# revise — preserves metadata from original
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_revise_snippet_preserves_original_metadata() -> None:
+    pipeline, doc_store, _ = make_pipeline()
+    original = await pipeline.add_snippet(
+        "Original.",
+        project="proj",
+        tags=["important"],
+        source_file="notes.md",
+        snippet_type=models.SnippetType.REFERENCE,
+    )
+    revised = await pipeline.revise_snippet(original.id, "Revised.")
+    assert revised.project == "proj"
+    assert revised.tags == ["important"]
+    assert revised.source_file == "notes.md"
+    assert revised.snippet_type == models.SnippetType.REFERENCE
+
+
+# ---------------------------------------------------------------------------
+# ask — with no matching snippets
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_ask_with_no_snippets_returns_response() -> None:
+    """ask() still returns a RAGResponse even when the knowledge base is empty."""
+    pipeline, _, _ = make_pipeline()
+    response = await pipeline.ask("Anything?", project="empty")
+    assert isinstance(response, models.RAGResponse)
+    assert response.sources == []

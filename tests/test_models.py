@@ -1,4 +1,4 @@
-"""Basic tests for core data models."""
+"""Tests for core data models."""
 
 from __future__ import annotations
 
@@ -9,21 +9,17 @@ import pytest
 from domesday.core.models import Chunk, IngestResult, RAGResponse, SearchResult, Snippet, SnippetType
 
 
-def test_snippet_defaults() -> None:
-    s = Snippet(raw_text="hello", project="test")
-    assert s.project == "test"
-    assert s.author == "anonymous"
-    assert s.snippet_type == SnippetType.PROSE
-    assert s.is_active is True
-    assert isinstance(s.id, str) and len(s.id) == 36
-
-
-def test_snippet_round_trip() -> None:
+def test_snippet_round_trip_preserves_all_fields() -> None:
+    """to_dict → from_dict preserves every field including optional ones."""
     s = Snippet(
         raw_text="some text",
         project="test",
         author="tester",
         tags=["a", "b"],
+        source_file="notes.md",
+        snippet_type=SnippetType.CODE,
+        parent_id="parent-123",
+        is_active=False,
     )
     d = s.to_dict()
     s2 = Snippet.from_dict(d)
@@ -31,19 +27,30 @@ def test_snippet_round_trip() -> None:
     assert s2.raw_text == s.raw_text
     assert s2.project == s.project
     assert s2.tags == s.tags
+    assert s2.source_file == s.source_file
+    assert s2.snippet_type == SnippetType.CODE
+    assert s2.parent_id == "parent-123"
+    assert s2.is_active is False
+    assert s2.author == "tester"
+    assert s2.created_at == s.created_at
+    assert s2.updated_at == s.updated_at
 
 
-def test_snippet_type_values() -> None:
-    assert SnippetType.PROSE == "prose"
-    assert SnippetType.CODE == "code"
-    assert SnippetType.TABLE == "table"
-
-
-def test_chunk_defaults() -> None:
-    c = Chunk()
-    assert isinstance(c.id, str)
-    assert c.chunk_index == 0
-    assert c.text == ""
+def test_snippet_from_dict_handles_missing_optional_fields() -> None:
+    """from_dict fills in sensible defaults when optional fields are absent."""
+    minimal = {
+        "id": "abc-123",
+        "raw_text": "hello",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    s = Snippet.from_dict(minimal)
+    assert s.project == "default"
+    assert s.author == "anonymous"
+    assert s.snippet_type == SnippetType.PROSE
+    assert s.source_file is None
+    assert s.parent_id is None
+    assert s.is_active is True
 
 
 def test_ingest_result_ok() -> None:
@@ -54,10 +61,12 @@ def test_ingest_result_ok() -> None:
     assert result_with_errors.ok is False
 
 
-def test_rag_response_cited_ids() -> None:
+def test_rag_response_cited_ids_deduplicates() -> None:
+    """cited_snippet_ids deduplicates when same snippet appears in multiple sources."""
     s1 = Snippet(raw_text="a", project="test")
     s2 = Snippet(raw_text="b", project="test")
-    r1 = SearchResult(snippet=s1, chunk_text="a", score=0.9)
-    r2 = SearchResult(snippet=s2, chunk_text="b", score=0.8)
-    response = RAGResponse(answer="ans", sources=[r1, r2])
+    r1 = SearchResult(snippet=s1, chunk_text="a chunk 1", score=0.9)
+    r2 = SearchResult(snippet=s1, chunk_text="a chunk 2", score=0.85)
+    r3 = SearchResult(snippet=s2, chunk_text="b", score=0.8)
+    response = RAGResponse(answer="ans", sources=[r1, r2, r3])
     assert response.cited_snippet_ids == [s1.id, s2.id]

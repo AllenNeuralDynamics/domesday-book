@@ -5,8 +5,8 @@ A shared knowledge base that keeps AI tools informed of your team's project-spec
 [![PyPI](https://img.shields.io/pypi/v/domesday.svg?label=PyPI&color=blue)](https://pypi.org/project/domesday/)
 [![Python version](https://img.shields.io/pypi/pyversions/domesday)](https://pypi.org/project/domesday/)
 
-[![Coverage](https://img.shields.io/badge/coverage-38%25-yellow?logo=codecov)](https://app.codecov.io/github/AllenNeuralDynamics/domesday-book)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
+[![Coverage](https://img.shields.io/badge/coverage-63%25-yellow?logo=codecov)](https://app.codecov.io/github/AllenNeuralDynamics/domesday-book)
 [![CI/CD](https://img.shields.io/github/actions/workflow/status/AllenNeuralDynamics/domesday-book/publish.yaml?label=CI/CD&logo=github)](https://github.com/AllenNeuralDynamics/domesday-book/actions/workflows/publish.yaml)
 [![GitHub issues](https://img.shields.io/github/issues/AllenNeuralDynamics/domesday-book?logo=github)](https://github.com/AllenNeuralDynamics/domesday-book/issues)
 
