@@ -93,7 +93,7 @@ class OpenAIEmbedder:
 
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
         try:
-            import openai  # noqa
+            import openai
         except ImportError:
             raise ImportError(
                 "OpenAI embedder requires the 'openai' package. "
