@@ -30,7 +30,7 @@ import mcp.server.stdio
 import mcp.types
 
 from domesday import config
-from domesday.core import pipeline
+from domesday.core import models, pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -217,7 +217,7 @@ async def list_tools() -> list[mcp.types.Tool]:
 
 
 @server.call_tool()
-async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]:  # type: ignore[type-arg]
+async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]:
     logger.info(
         "MCP tool call: %s(%s)", name, {k: str(v)[:80] for k, v in arguments.items()}
     )
@@ -270,13 +270,13 @@ async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]: 
 
     if name == "get_snippet":
         snippet_id = arguments["snippet_id"]
-        snippet = await pipeline.doc_store.get(snippet_id)
-        if snippet is None:
+        found: models.Snippet | None = await pipeline.doc_store.get(snippet_id)
+        if found is None:
             all_active = await pipeline.doc_store.get_all_active()
             matches = [s for s in all_active if s.id.startswith(snippet_id)]
-            snippet = matches[0] if len(matches) == 1 else None
+            found = matches[0] if len(matches) == 1 else None
 
-        if snippet is None:
+        if found is None:
             return [
                 mcp.types.TextContent(
                     type="text", text=f"Snippet '{snippet_id}' not found."
@@ -286,7 +286,7 @@ async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]: 
         return [
             mcp.types.TextContent(
                 type="text",
-                text=json.dumps(snippet.to_dict(), indent=2, default=str),
+                text=json.dumps(found.to_dict(), indent=2, default=str),
             )
         ]
 

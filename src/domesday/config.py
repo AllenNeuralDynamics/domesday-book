@@ -84,7 +84,7 @@ class Config:
             logger.debug("No config file at %s, using defaults", path)
 
         # Env var overrides (flat, for CI/deployment)
-        env_map = {
+        env_map: dict[str, str | tuple[str, str]] = {
             "DOMESDAY_DATA_DIR": "data_dir",
             "DOMESDAY_DEFAULT_PROJECT": "default_project",
             "DOMESDAY_EMBEDDER_BACKEND": ("embedder", "backend"),
@@ -162,20 +162,23 @@ def _build_embedder(cfg: Config) -> protocols.Embedder:
     section = cfg.section("embedder")
     backend = section["backend"]
     model: str = section.get("model", "")
-    model_kwargs = {"model": model} if model else {}
 
     if backend == "voyage":
         logger.debug("Embedder: Voyage (model=%s)", model)
-        return embedders.VoyageEmbedder(**model_kwargs)
+        return embedders.VoyageEmbedder(model=model) if model else embedders.VoyageEmbedder()
     if backend == "openai":
         logger.debug("Embedder: OpenAI (model=%s)", model or "<class default>")
-        return embedders.OpenAIEmbedder(**model_kwargs)
+        return embedders.OpenAIEmbedder(model=model) if model else embedders.OpenAIEmbedder()
     if backend == "local":
         logger.debug(
             "Embedder: local sentence-transformers (model=%s)",
             model or "<class default>",
         )
-        return embedders.SentenceTransformerEmbedder(**model_kwargs)
+        return (
+            embedders.SentenceTransformerEmbedder(model=model)
+            if model
+            else embedders.SentenceTransformerEmbedder()
+        )
 
     raise ValueError(f"Unknown embedder backend: {backend}")
 
@@ -184,11 +187,10 @@ def _build_generator(cfg: Config) -> protocols.Generator:
     section = cfg.section("generator")
     backend = section["backend"]
     model: str = section.get("model", "")
-    model_kwargs = {"model": model} if model else {}
 
     if backend == "claude":
         logger.debug("Generator: Claude (model=%s)", model)
-        return generators.ClaudeGenerator(**model_kwargs)
+        return generators.ClaudeGenerator(model=model) if model else generators.ClaudeGenerator()
 
     raise ValueError(f"Unknown generator backend: {backend}")
 

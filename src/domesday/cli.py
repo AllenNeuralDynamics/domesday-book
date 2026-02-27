@@ -30,7 +30,7 @@ app = typer.Typer(
 )
 
 
-def _run(coro):  # type: ignore[no-untyped-def]
+def _run(coro):
     """Run an async coroutine from synchronous Typer commands."""
     return asyncio.run(coro)
 
@@ -113,10 +113,11 @@ def add(
     elif not sys.stdin.isatty():
         content = sys.stdin.read()
     else:
-        content = typer.edit(text="# Enter your snippet below\n")
-        if not content:
+        edited = typer.edit(text="# Enter your snippet below\n")
+        if not edited:
             typer.echo("Aborted — no content provided.", err=True)
             return
+        content = edited
 
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags else []
 
@@ -437,7 +438,7 @@ def stats(
             typer.echo(f"Project:  {project}")
             typer.echo(f"Snippets: {doc_count}")
 
-        vec_count = pipeline.vec_store.count()  # type: ignore[union-attr]
+        vec_count = pipeline.vec_store.count()
         typer.echo(f"Chunks (all projects): {vec_count}")
 
     _run(_stats())

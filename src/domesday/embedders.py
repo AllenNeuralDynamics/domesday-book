@@ -46,9 +46,9 @@ class VoyageEmbedder:
         return VOYAGE_DIMENSIONS.get(self.model, 1024)
 
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
-        import voyageai  # type: ignore[import-untyped]
+        import voyageai
 
-        client = voyageai.AsyncClient()
+        client = voyageai.AsyncClient()  # type: ignore[attr-defined]
         all_embeddings: list[list[float]] = []
 
         # Batch to stay within API limits
@@ -66,7 +66,7 @@ class VoyageEmbedder:
                 model=self.model,
                 input_type="document",
             )
-            all_embeddings.extend(result.embeddings)
+            all_embeddings.extend(result.embeddings)  # type: ignore[arg-type]
 
         logger.info(
             "Voyage embedded %d texts → %d vectors (dim=%d)",
@@ -140,18 +140,18 @@ class SentenceTransformerEmbedder:
 
     def _get_model(self) -> object:
         if self._model_instance is None:
-            import sentence_transformers  # type: ignore[import-untyped]
+            import sentence_transformers
 
             self._model_instance = sentence_transformers.SentenceTransformer(self.model)
             # Update dimension from the actual model
-            self._dimension = self._model_instance.get_sentence_embedding_dimension()  # type: ignore[union-attr]
+            self._dimension = self._model_instance.get_sentence_embedding_dimension()  # type: ignore[assignment]
             logger.info("Loaded local model '%s' (dim=%d)", self.model, self._dimension)
         return self._model_instance
 
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
         model = self._get_model()
         logger.debug("Local embed: %d texts (model=%s)", len(texts), self.model)
-        embeddings = model.encode(list(texts), show_progress_bar=False)  # type: ignore[union-attr]
+        embeddings = model.encode(list(texts), show_progress_bar=False)  # type: ignore[attr-defined]
         logger.info(
             "Local embedded %d texts → %d vectors (dim=%d)",
             len(texts),
