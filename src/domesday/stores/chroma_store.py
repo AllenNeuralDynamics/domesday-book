@@ -202,7 +202,7 @@ class ChromaVectorStore:
             return 0
 
         updated_metadatas = []
-        for meta in (results["metadatas"] or []):
+        for meta in results["metadatas"] or []:
             new_meta = dict(meta)
             new_meta["project"] = new_name
             updated_metadatas.append(new_meta)

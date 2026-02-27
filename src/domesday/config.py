@@ -165,10 +165,18 @@ def _build_embedder(cfg: Config) -> protocols.Embedder:
 
     if backend == "voyage":
         logger.debug("Embedder: Voyage (model=%s)", model)
-        return embedders.VoyageEmbedder(model=model) if model else embedders.VoyageEmbedder()
+        return (
+            embedders.VoyageEmbedder(model=model)
+            if model
+            else embedders.VoyageEmbedder()
+        )
     if backend == "openai":
         logger.debug("Embedder: OpenAI (model=%s)", model or "<class default>")
-        return embedders.OpenAIEmbedder(model=model) if model else embedders.OpenAIEmbedder()
+        return (
+            embedders.OpenAIEmbedder(model=model)
+            if model
+            else embedders.OpenAIEmbedder()
+        )
     if backend == "local":
         logger.debug(
             "Embedder: local sentence-transformers (model=%s)",
@@ -190,7 +198,11 @@ def _build_generator(cfg: Config) -> protocols.Generator:
 
     if backend == "claude":
         logger.debug("Generator: Claude (model=%s)", model)
-        return generators.ClaudeGenerator(model=model) if model else generators.ClaudeGenerator()
+        return (
+            generators.ClaudeGenerator(model=model)
+            if model
+            else generators.ClaudeGenerator()
+        )
 
     raise ValueError(f"Unknown generator backend: {backend}")
 

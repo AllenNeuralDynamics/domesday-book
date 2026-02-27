@@ -5,8 +5,9 @@ from __future__ import annotations
 import sys
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Self
+
 if sys.version_info >= (3, 11):
     from enum import StrEnum
 else:
@@ -38,8 +39,8 @@ class Snippet:
     summary: str = ""
     snippet_type: SnippetType = SnippetType.PROSE
     author: str = "anonymous"
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(UTC))
     tags: list[str] = field(default_factory=list)
     source_file: str | None = None
     parent_id: str | None = None

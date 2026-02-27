@@ -12,7 +12,6 @@ from typing import Protocol, runtime_checkable
 
 from domesday.core import models
 
-
 # ---------------------------------------------------------------------------
 # Document storage (metadata + raw text)
 # ---------------------------------------------------------------------------
@@ -42,7 +41,9 @@ class DocumentStore(Protocol):
         active_only: bool = True,
     ) -> list[models.Snippet]: ...
 
-    async def get_all_active(self, *, project: str | None = None) -> list[models.Snippet]:
+    async def get_all_active(
+        self, *, project: str | None = None
+    ) -> list[models.Snippet]:
         """Return all active snippets, optionally filtered by project."""
         ...
 

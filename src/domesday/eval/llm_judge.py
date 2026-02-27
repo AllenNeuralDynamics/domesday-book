@@ -11,8 +11,8 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import dataclass
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 import anthropic
 
@@ -32,12 +32,12 @@ JUDGE_MODEL = "claude-haiku-4-5-20251001"
 class JudgmentScores:
     """Scores assigned by the LLM judge to a RAG response."""
 
-    faithfulness: float       # 0–1: does the answer stick to what's in the snippets?
+    faithfulness: float  # 0–1: does the answer stick to what's in the snippets?
     citation_accuracy: float  # 0–1: do cited IDs actually support the claims?
-    abstention: float         # 0–1: did it correctly say "I don't know" when appropriate?
-    synthesis: float          # 0–1: for multi-source answers, coherent combination?
-    relevance: float          # 0–1: does the answer actually address the question?
-    explanation: str = ""     # free-text reasoning from the judge
+    abstention: float  # 0–1: did it correctly say "I don't know" when appropriate?
+    synthesis: float  # 0–1: for multi-source answers, coherent combination?
+    relevance: float  # 0–1: does the answer actually address the question?
+    explanation: str = ""  # free-text reasoning from the judge
 
     @property
     def composite(self) -> float:
@@ -110,7 +110,11 @@ class LLMJudge:
                 f"{r.snippet.created_at.strftime('%Y-%m-%d')})\n"
                 f"{r.snippet.raw_text}"
             )
-        context_block = "\n---\n".join(context_parts) if context_parts else "(no snippets retrieved)"
+        context_block = (
+            "\n---\n".join(context_parts)
+            if context_parts
+            else "(no snippets retrieved)"
+        )
 
         user_message = (
             f"<question>{query}</question>\n\n"
@@ -218,13 +222,11 @@ class LLMReranker:
         client = anthropic.AsyncAnthropic()
 
         chunks_block = "\n\n".join(
-            f"[{i}] {r.snippet.raw_text[:500]}"
-            for i, r in enumerate(results)
+            f"[{i}] {r.snippet.raw_text[:500]}" for i, r in enumerate(results)
         )
 
         user_message = (
-            f"<query>{query}</query>\n\n"
-            f"<chunks>\n{chunks_block}\n</chunks>"
+            f"<query>{query}</query>\n\n" f"<chunks>\n{chunks_block}\n</chunks>"
         )
 
         message = await client.messages.create(
