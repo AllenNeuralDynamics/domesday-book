@@ -7,7 +7,7 @@ Swap backends by changing config — nothing else touches these contracts.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from typing import Protocol, runtime_checkable
 
 from domesday.core import models
@@ -71,20 +71,21 @@ class VectorStore(Protocol):
 
     async def add_chunks(
         self,
-        chunks: Sequence[models.Chunk],
-        embeddings: Sequence[list[float]],
         *,
-        project: str,
+        chunks: Iterable[models.Chunk],
+        embeddings: Iterable[Sequence[float]],
         embedding_model: str,
+        project: str,
     ) -> None: ...
 
     async def search(
         self,
-        query_embedding: list[float],
-        k: int = 10,
+        query_embedding: Sequence[float],
+        k: int | None,
         *,
         project: str | None = None,
         filter_tags: Sequence[str] | None = None,
+        embedding_model: str | None = None,
     ) -> list[tuple[str, str, float]]:
         """Returns list of (chunk_id, snippet_id, score)."""
         ...
@@ -95,6 +96,7 @@ class VectorStore(Protocol):
 
     def count(self) -> int: ...
     def initialize(self) -> None: ...  # for stores that require setup before use
+
 
 # ---------------------------------------------------------------------------
 # Embedding
@@ -109,7 +111,7 @@ class Embedder(Protocol):
     def model(self) -> str:
         """Model name or identifier."""
         ...
-        
+
     @property
     def dimension(self) -> int:
         """Dimensionality of the output vectors."""

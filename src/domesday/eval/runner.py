@@ -71,6 +71,7 @@ class EvalRunner:
                 snippet = await pl.add_snippet(
                     ts.text,
                     author=ts.author,
+                    project=ts.project,
                     tags=ts.tags,
                     source_file=f"test:{ts.id_prefix}",
                 )

@@ -56,7 +56,7 @@ class Pipeline:
     async def add_snippet(
         self,
         text: str,
-        project: str | None = None,
+        project: str,
         *,
         author: str = "anonymous",
         tags: list[str] | None = None,
@@ -64,10 +64,9 @@ class Pipeline:
         snippet_type: models.SnippetType = models.SnippetType.PROSE,
     ) -> models.Snippet:
         """Add a single snippet: store, chunk, embed, index."""
-        resolved_project = self._resolve_project(project)
         snippet = models.Snippet(
             raw_text=text,
-            project=resolved_project,
+            project=project,
             author=author,
             tags=tags or [],
             source_file=source_file,
@@ -91,14 +90,14 @@ class Pipeline:
 
             # 4. Index in vector store with project metadata
             await self.vec_store.add_chunks(
-                chunks, embeddings, project=resolved_project, embedding_model=self.embedder.model
+                chunks=chunks, embeddings=embeddings, project=project, embedding_model=self.embedder.model
             )
             logger.debug("Indexed %d chunks in vector store", len(chunks))
 
         logger.info(
             "Added snippet %s to project '%s' (%d chunks)",
             snippet.id[:8],
-            resolved_project,
+            project,
             len(chunks),
         )
         return snippet
@@ -106,7 +105,7 @@ class Pipeline:
     async def ingest_file(
         self,
         path: Path,
-        project: str | None = None,
+        project: str,
         *,
         author: str = "anonymous",
         delimiter: str | None = None,
@@ -116,7 +115,6 @@ class Pipeline:
         Supports .md, .txt, .py, .json, .csv, .yaml/.yml.
         Markdown files are split on '---' or '## ' headings by default.
         """
-        resolved_project = self._resolve_project(project)
         text = path.read_text(encoding="utf-8")
         suffix = path.suffix.lower()
         logger.debug(
@@ -146,7 +144,7 @@ class Pipeline:
                 continue
             snippet = await self.add_snippet(
                 section,
-                project=resolved_project,
+                project=project,
                 author=author,
                 source_file=str(path),
                 snippet_type=snippet_type,
@@ -262,7 +260,7 @@ class Pipeline:
         query: str,
         *,
         project: str | None = None,
-        k: int = 10,
+        k: int | None = 10,
         tags: Sequence[str] | None = None,
         min_score: float = 0.0,
     ) -> list[models.SearchResult]:
@@ -270,23 +268,23 @@ class Pipeline:
 
         Args:
             project: Scope search to a specific project. If None, uses
-                     default_project. Pass "__all__" to search across
+                     default_project. Pass "all" to search across
                      all projects.
             min_score: Minimum cosine similarity threshold (0.0–1.0).
         """
         threshold = min_score
 
-        # Resolve project: None → default, "__all__" → no filter
-        if project == "__all__":
+        # Resolve project: None → default, "all" → no filter
+        if project == "all":
             search_project = None
         else:
             search_project = self._resolve_project(project)
 
         logger.debug(
-            "Search: query='%s', project=%s, k=%d, threshold=%.3f",
+            "Search: query='%s', project=%s, k=%s, threshold=%.3f",
             query[:60],
             search_project or "(all)",
-            k,
+            str(k) or "(all)",
             threshold,
         )
 
@@ -341,7 +339,7 @@ class Pipeline:
         question: str,
         *,
         project: str | None = None,
-        k: int = 10,
+        k: int | None= 10,
         tags: Sequence[str] | None = None,
         min_score: float = 0.0,
         system_prompt: str | None = None,

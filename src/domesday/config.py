@@ -108,16 +108,6 @@ class Config(BaseSettings):
     retrieval: RetrievalConfig = RetrievalConfig()
     reranker: RerankerConfig = RerankerConfig()
 
-    def section(self, name: str) -> dict[str, Any]:
-        """Return a copy of a named configuration section as a plain dict.
-
-        Returns an empty dict if the section does not exist.
-        """
-        value = getattr(self, name, None)
-        if isinstance(value, pydantic.BaseModel):
-            return value.model_dump()
-        return {}
-
     @classmethod
     def settings_customise_sources(
         cls,
@@ -133,6 +123,9 @@ class Config(BaseSettings):
     def load(cls, path: Path | None = None) -> Config:
         """Load config, optionally from a non-default TOML path."""
         if path is None:
+            return cls()
+        if not path.exists():
+            logger.warning("Config file %s not found, falling back to defaults and env vars", path)
             return cls()
         # Inject a custom TOML source for the given path
         toml_source = TomlConfigSettingsSource(cls, toml_file=path)

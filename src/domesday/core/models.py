@@ -33,9 +33,9 @@ class Snippet:
     to the original, and the original is marked inactive.
     """
 
+    raw_text: str
+    project: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    project: str = "default"
-    raw_text: str = ""
     summary: str = ""
     snippet_type: SnippetType = SnippetType.PROSE
     author: str = "anonymous"

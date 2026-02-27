@@ -3,19 +3,19 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Sequence, Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import chromadb
 
-from domesday.core import models
+from domesday.core import models, protocols
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ChromaVectorStore:
+class ChromaVectorStore(protocols.VectorStore):
     """VectorStore implementation using ChromaDB (local persistent mode).
 
     Chroma handles vector indexing and similarity search. We store
@@ -67,16 +67,16 @@ class ChromaVectorStore:
 
     async def add_chunks(
         self,
-        chunks: Sequence[models.Chunk],
-        embeddings: Sequence[list[float]],
         *,
-        project: str,
+        chunks: Iterable[models.Chunk],
+        embeddings: Iterable[Sequence[float]],
         embedding_model: str,
+        project: str,
     ) -> None:
         if not chunks:
             logger.debug("No chunks to add, skipping")
             return
-
+        chunks = list(chunks)  # in case it's a non-reusable iterable
         self.collection.add(
             ids=[c.id for c in chunks],
             embeddings=[list(e) for e in embeddings],
@@ -109,11 +109,12 @@ class ChromaVectorStore:
 
     async def search(
         self,
-        query_embedding: list[float],
-        k: int = 10,
+        query_embedding: Sequence[float],
+        k: int | None = 10,
         *,
         project: str | None = None,
         filter_tags: Sequence[str] | None = None,
+        embedding_model: str | None = None,
     ) -> list[tuple[str, str, float]]:
         """Similarity search, returns (chunk_id, snippet_id, score).
 
@@ -126,14 +127,14 @@ class ChromaVectorStore:
             where_filter = {"project": project}
 
         logger.debug(
-            "Chroma search: k=%d, project=%s",
-            k,
+            "Chroma search: k=%s, project=%s",
+            str(k) if k is not None else "(all)",
             project or "(all)",
         )
 
         results = self.collection.query(
             query_embeddings=[query_embedding],
-            n_results=min(k, self.collection.count() or 1),
+            n_results=k or self.collection.count(),
             include=["metadatas", "distances", "documents"],
             where=where_filter,
         )

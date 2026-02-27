@@ -153,13 +153,13 @@ A single domesday deployment supports multiple independent projects. This is imp
 
 **VectorStore:** Project is stored in Chroma metadata on each chunk. Similarity search accepts a `where` filter on project, so vector search is scoped at the Chroma level — not post-filtered in Python. This means project-scoped queries only search the relevant vectors, not the entire collection.
 
-**Pipeline:** All operations (`add_snippet`, `ingest_*`, `search`, `ask`) accept an optional `project` parameter. If not provided, they use `default_project` from config. The special value `"__all__"` disables project filtering for cross-project queries.
+**Pipeline:** All operations (`add_snippet`, `ingest_*`, `search`, `ask`) accept an optional `project` parameter. If not provided, they use `default_project` from config. The special value `"all"` disables project filtering for cross-project queries.
 
 **CLI:** The `--project` / `-p` flag can be set per-command or at the top level (`domes -p myproject <command>`). The `--all-projects` flag enables cross-project queries for search, list, and stats.
 
 **MCP:** All tools accept an optional `project` argument. The default is set by `DOMESDAY_DEFAULT_PROJECT` in the server environment.
 
-**Why not separate databases?** A single database with project filtering is simpler to manage, back up, and deploy. It also enables cross-project search (`__all__`) when needed — for instance, finding all timing-related caveats across every project. Separate databases would make this impossible without a federation layer.
+**Why not separate databases?** A single database with project filtering is simpler to manage, back up, and deploy. It also enables cross-project search (`all`) when needed — for instance, finding all timing-related caveats across every project. Separate databases would make this impossible without a federation layer.
 
 ## Retrieval pipeline
 

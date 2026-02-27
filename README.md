@@ -228,7 +228,7 @@ domesday exposes itself as an MCP server, making the knowledge base available fr
 | `rename_project(old_name, new_name)` | Rename a project across all stores |
 | `ask(question, project?, n_context?)` | Retrieve relevant context and generate an answer with citations |
 
-All tools accept an optional `project` parameter. Pass `"__all__"` to search across all projects.
+All tools accept an optional `project` parameter. Pass `"all"` to search across all projects.
 
 ## Evaluation
 

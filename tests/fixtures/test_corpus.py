@@ -17,6 +17,7 @@ class TestSnippet:
     id_prefix: str
     text: str
     author: str
+    project: str
     tags: list[str] = field(default_factory=list)
 
 
@@ -46,7 +47,7 @@ SNIPPETS: list[TestSnippet] = [
             "times. This was fixed in VBO v2.3."
         ),
         author="sarah",
-        tags=["vbo", "timestamps", "bug"],
+        project="vbo",
     ),
     TestSnippet(
         id_prefix="t02",
@@ -57,6 +58,7 @@ SNIPPETS: list[TestSnippet] = [
             "depends on gaze position or pupil diameter."
         ),
         author="marcus",
+        project="vbo",
         tags=["vbo", "eye-tracking", "data-quality"],
     ),
     TestSnippet(
@@ -67,6 +69,7 @@ SNIPPETS: list[TestSnippet] = [
             "running speed to 80 cm/s in the standard preprocessing pipeline."
         ),
         author="sarah",
+        project="vbo",
         tags=["vbo", "running", "preprocessing"],
     ),
     TestSnippet(
@@ -79,6 +82,7 @@ SNIPPETS: list[TestSnippet] = [
             "replication failure last quarter."
         ),
         author="ben",
+        project="vbo",
         tags=["vbo", "data-wrangling", "gotcha"],
     ),
     # --- Cluster: Two-photon imaging ---
@@ -91,6 +95,7 @@ SNIPPETS: list[TestSnippet] = [
             "extracting ROIs. Rig 2 is worse than Rig 1."
         ),
         author="jun",
+        project="vbo",
         tags=["two-photon", "motion", "hardware"],
     ),
     TestSnippet(
@@ -102,6 +107,7 @@ SNIPPETS: list[TestSnippet] = [
             "correlation of their dF/F traces (>0.85 usually means same cell)."
         ),
         author="jun",
+        project="vbo",
         tags=["two-photon", "suite2p", "segmentation"],
     ),
     TestSnippet(
@@ -113,6 +119,7 @@ SNIPPETS: list[TestSnippet] = [
             "this against simultaneous electrophysiology in 3 animals."
         ),
         author="priya",
+        project="vbo",
         tags=["two-photon", "suite2p", "neuropil", "gcamp"],
     ),
     # --- Cluster: Behavioral training ---
@@ -125,6 +132,7 @@ SNIPPETS: list[TestSnippet] = [
             "ITI seems to maintain engagement better."
         ),
         author="marcus",
+        project="vbo",
         tags=["behavior", "training", "visual-discrimination"],
     ),
     TestSnippet(
@@ -136,6 +144,7 @@ SNIPPETS: list[TestSnippet] = [
             "Always check the welfare chart before adjusting restriction level."
         ),
         author="sarah",
+        project="vbo",
         tags=["behavior", "welfare", "water-restriction"],
     ),
     TestSnippet(
@@ -147,6 +156,7 @@ SNIPPETS: list[TestSnippet] = [
             "trials from all auditory analyses."
         ),
         author="marcus",
+        project="vbo",
         tags=["behavior", "auditory", "bias"],
     ),
     # --- Cluster: Electrophysiology ---
@@ -159,6 +169,7 @@ SNIPPETS: list[TestSnippet] = [
             "or apply the Steinmetz denoising pipeline."
         ),
         author="jun",
+        project="vbo",
         tags=["ephys", "neuropixels", "hardware", "noise"],
     ),
     TestSnippet(
@@ -170,6 +181,7 @@ SNIPPETS: list[TestSnippet] = [
             "auto_merge parameter in KS4 helps but doesn't fully solve it."
         ),
         author="priya",
+        project="vbo",
         tags=["ephys", "kilosort", "spike-sorting"],
     ),
     TestSnippet(
@@ -181,6 +193,7 @@ SNIPPETS: list[TestSnippet] = [
             "most important experiments should run first."
         ),
         author="jun",
+        project="vbo",
         tags=["ephys", "neuropixels", "chronic", "planning"],
     ),
     # --- Cluster: Analysis pipeline ---
@@ -193,6 +206,7 @@ SNIPPETS: list[TestSnippet] = [
             "trace instead, or identify quiescent periods automatically."
         ),
         author="priya",
+        project="vbo",
         tags=["analysis", "normalization", "calcium"],
     ),
     TestSnippet(
@@ -205,6 +219,7 @@ SNIPPETS: list[TestSnippet] = [
             "--nodelist or use the conda env that matches."
         ),
         author="ben",
+        project="vbo",
         tags=["infrastructure", "gpu", "cuda", "slurm"],
     ),
     TestSnippet(
@@ -217,6 +232,7 @@ SNIPPETS: list[TestSnippet] = [
             "or switch to a loop."
         ),
         author="ben",
+        project="vbo",
         tags=["analysis", "pandas", "gotcha"],
     ),
     # --- Cluster: Specific experimental findings ---
@@ -230,6 +246,7 @@ SNIPPETS: list[TestSnippet] = [
             "for the predictive coding experiments."
         ),
         author="priya",
+        project="vbo",
         tags=["v1", "mismatch", "predictive-coding", "finding"],
     ),
     TestSnippet(
@@ -242,6 +259,7 @@ SNIPPETS: list[TestSnippet] = [
             "vestibular input is different."
         ),
         author="jun",
+        project="vbo",
         tags=["v1", "interneurons", "sst", "locomotion", "finding"],
     ),
     TestSnippet(
@@ -254,6 +272,7 @@ SNIPPETS: list[TestSnippet] = [
             "to literature that typically uses 0.02-0.04 cpd."
         ),
         author="priya",
+        project="vbo",
         tags=["lgn", "orientation", "finding", "stimuli"],
     ),
     # --- Cluster: Data management ---
@@ -267,6 +286,7 @@ SNIPPETS: list[TestSnippet] = [
             "— do NOT try to parse NWB filenames to extract session IDs."
         ),
         author="sarah",
+        project="vbo",
         tags=["data-management", "lims", "nwb", "gotcha"],
     ),
     TestSnippet(
@@ -278,6 +298,7 @@ SNIPPETS: list[TestSnippet] = [
             "field in the NWB metadata — if it says 'custom', it's the old system."
         ),
         author="sarah",
+        project="vbo",
         tags=["data-management", "nwb", "coordinates", "bug"],
     ),
     # --- Cluster: Software / tools ---
@@ -290,6 +311,7 @@ SNIPPETS: list[TestSnippet] = [
             "df.drop_duplicates(subset='cell_specimen_id')."
         ),
         author="ben",
+        project="vbo",
         tags=["allensdk", "bug", "software"],
     ),
     TestSnippet(
@@ -301,6 +323,7 @@ SNIPPETS: list[TestSnippet] = [
             "can't handle the whisker's thin, high-curvature geometry."
         ),
         author="marcus",
+        project="vbo",
         tags=["software", "deeplabcut", "whiskers", "video"],
     ),
     # --- Cluster: Histology / anatomy ---
@@ -313,6 +336,7 @@ SNIPPETS: list[TestSnippet] = [
             "fluorescence. Protocol updated in the shared lab notebook 2024-09."
         ),
         author="jun",
+        project="vbo",
         tags=["histology", "clearing", "idisco", "protocol"],
     ),
     TestSnippet(
@@ -324,6 +348,7 @@ SNIPPETS: list[TestSnippet] = [
             "manually verify probe tracks against cytoarchitecture."
         ),
         author="priya",
+        project="vbo",
         tags=["anatomy", "ccf", "atlas", "registration"],
     ),
     # --- Cluster: Stimulus / display ---
@@ -336,6 +361,7 @@ SNIPPETS: list[TestSnippet] = [
             "affect most analyses but worth noting for contrast sensitivity work."
         ),
         author="marcus",
+        project="vbo",
         tags=["stimulus", "display", "calibration"],
     ),
     TestSnippet(
@@ -347,6 +373,7 @@ SNIPPETS: list[TestSnippet] = [
             "This stacks with the VBO off-by-one for pre-2023-06 data."
         ),
         author="ben",
+        project="vbo",
         tags=["stimulus", "display", "timing", "latency"],
     ),
     # --- Cluster: Statistical methods ---
@@ -360,6 +387,7 @@ SNIPPETS: list[TestSnippet] = [
             "analysis_utils.cluster_permutation_test()."
         ),
         author="priya",
+        project="vbo",
         tags=["statistics", "methods", "calcium", "analysis"],
     ),
     TestSnippet(
@@ -371,6 +399,7 @@ SNIPPETS: list[TestSnippet] = [
             "variance which doesn't assume unimodality."
         ),
         author="priya",
+        project="vbo",
         tags=["statistics", "tuning-curves", "orientation"],
     ),
     # --- Standalone / misc ---
@@ -383,6 +412,7 @@ SNIPPETS: list[TestSnippet] = [
             "pickle files are not compatible across numpy major versions."
         ),
         author="sarah",
+        project="vbo",
         tags=["infrastructure", "python", "standards"],
     ),
 ]

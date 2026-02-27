@@ -34,13 +34,13 @@ def test_approx_token_count_typical() -> None:
 
 def test_chunk_empty_snippet_returns_empty_list() -> None:
     chunker = SimpleChunker()
-    snippet = Snippet(raw_text="")
+    snippet = Snippet(raw_text="", project="test")
     assert chunker.chunk(snippet) == []
 
 
 def test_chunk_whitespace_only_returns_empty_list() -> None:
     chunker = SimpleChunker()
-    snippet = Snippet(raw_text="   \n\t  ")
+    snippet = Snippet(raw_text="   \n\t  ", project="test")
     assert chunker.chunk(snippet) == []
 
 
@@ -51,7 +51,7 @@ def test_chunk_whitespace_only_returns_empty_list() -> None:
 
 def test_chunk_short_snippet_produces_single_chunk() -> None:
     chunker = SimpleChunker(max_tokens=400)
-    snippet = Snippet(raw_text="A short prose note.")
+    snippet = Snippet(raw_text="A short prose note.", project="test")
     chunks = chunker.chunk(snippet)
     assert len(chunks) == 1
     assert chunks[0].text == "A short prose note."
@@ -61,8 +61,8 @@ def test_chunk_short_snippet_produces_single_chunk() -> None:
 
 def test_chunk_single_chunk_id_is_unique() -> None:
     chunker = SimpleChunker()
-    s1 = Snippet(raw_text="hello world")
-    s2 = Snippet(raw_text="hello world")
+    s1 = Snippet(raw_text="hello world", project="test")
+    s2 = Snippet(raw_text="hello world", project="test")
     c1 = chunker.chunk(s1)[0]
     c2 = chunker.chunk(s2)[0]
     assert c1.id != c2.id
@@ -76,7 +76,7 @@ def test_chunk_single_chunk_id_is_unique() -> None:
 def test_chunk_snippet_id_propagated() -> None:
     chunker = SimpleChunker(max_tokens=10)  # 10 tokens → 40 chars max
     long_text = "word " * 50  # well over budget
-    snippet = Snippet(raw_text=long_text)
+    snippet = Snippet(raw_text=long_text, project="test")
     chunks = chunker.chunk(snippet)
     assert all(c.snippet_id == snippet.id for c in chunks)
 
@@ -89,7 +89,7 @@ def test_chunk_snippet_id_propagated() -> None:
 def test_chunk_indices_sequential() -> None:
     chunker = SimpleChunker(max_tokens=10, overlap_tokens=0)
     long_text = ("Hello world. " * 5 + "\n\n") * 10
-    snippet = Snippet(raw_text=long_text)
+    snippet = Snippet(raw_text=long_text, project="test")
     chunks = chunker.chunk(snippet)
     assert len(chunks) > 1
     for i, chunk in enumerate(chunks):
@@ -107,7 +107,7 @@ def test_chunk_prose_multi_chunk_coverage() -> None:
     # Build a text with multiple paragraphs to force splitting
     para = "This is a paragraph with several words filling the token budget.\n\n"
     long_text = para * 15
-    snippet = Snippet(raw_text=long_text, snippet_type=SnippetType.PROSE)
+    snippet = Snippet(raw_text=long_text, snippet_type=SnippetType.PROSE, project="test")
     chunks = chunker.chunk(snippet)
     assert len(chunks) > 1
     # Every chunk should have non-empty text
@@ -120,7 +120,7 @@ def test_chunk_prose_text_within_budget() -> None:
     chunker = SimpleChunker(max_tokens=max_tokens, overlap_tokens=0)
     para = "word " * 30  # ~30 tokens per paragraph
     long_text = (para + "\n\n") * 10
-    snippet = Snippet(raw_text=long_text, snippet_type=SnippetType.PROSE)
+    snippet = Snippet(raw_text=long_text, snippet_type=SnippetType.PROSE, project="test")
     chunks = chunker.chunk(snippet)
     max_chars = max_tokens * 4 * 3  # generous headroom for single oversized paragraphs
     assert all(len(c.text) <= max_chars for c in chunks)
@@ -134,7 +134,7 @@ def test_chunk_prose_text_within_budget() -> None:
 def test_chunk_code_single_block_no_split() -> None:
     chunker = SimpleChunker(max_tokens=400)
     code = "def foo():\n    return 42\n"
-    snippet = Snippet(raw_text=code, snippet_type=SnippetType.CODE)
+    snippet = Snippet(raw_text=code, snippet_type=SnippetType.CODE, project="test")
     chunks = chunker.chunk(snippet)
     assert len(chunks) == 1
     assert chunks[0].text == code.strip()
@@ -146,7 +146,7 @@ def test_chunk_code_splits_on_blank_lines() -> None:
     chunker = SimpleChunker(max_tokens=max_tokens, overlap_tokens=0)
     block = "x = " + "1 + " * 15 + "0\n"  # ~80 chars per block
     code = (block + "\n\n") * 10
-    snippet = Snippet(raw_text=code, snippet_type=SnippetType.CODE)
+    snippet = Snippet(raw_text=code, snippet_type=SnippetType.CODE, project="test")
     chunks = chunker.chunk(snippet)
     assert len(chunks) > 1
     assert all(c.snippet_id == snippet.id for c in chunks)
@@ -157,7 +157,7 @@ def test_chunk_code_no_overlap_between_chunks() -> None:
     chunker = SimpleChunker(max_tokens=10, overlap_tokens=50)
     block = "result = " + "value + " * 15 + "0\n"
     code = (block + "\n\n") * 8
-    snippet = Snippet(raw_text=code, snippet_type=SnippetType.CODE)
+    snippet = Snippet(raw_text=code, snippet_type=SnippetType.CODE, project="test")
     chunks = chunker.chunk(snippet)
     if len(chunks) > 1:
         # First block of chunk[1] should NOT be the same as the last block of chunk[0]

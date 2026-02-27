@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Sequence, Iterable
 from pathlib import Path
 
 import pytest
 
 from domesday.chunking import SimpleChunker
-from domesday.core import models
+from domesday.core import models, protocols
 from domesday.core.pipeline import Pipeline
 
 
@@ -19,7 +19,7 @@ from domesday.core.pipeline import Pipeline
 # ---------------------------------------------------------------------------
 
 
-class InMemoryDocStore:
+class InMemoryDocStore(protocols.DocumentStore):
     """Minimal in-memory DocumentStore for testing."""
 
     def __init__(self) -> None:
@@ -92,7 +92,7 @@ class InMemoryDocStore:
         return len(results)
 
 
-class InMemoryVecStore:
+class InMemoryVecStore(protocols.VectorStore):
     """Minimal in-memory VectorStore for testing."""
 
     def __init__(self) -> None:
@@ -108,22 +108,23 @@ class InMemoryVecStore:
 
     async def add_chunks(
         self,
-        chunks: Sequence[models.Chunk],
-        embeddings: Sequence[list[float]],
         *,
-        project: str = "default",
-        embedding_model: str = "",
+        chunks: Iterable[models.Chunk],
+        embeddings: Iterable[Sequence[float]],
+        embedding_model: str = "test-embedder",
+        project: str = "test-project",
     ) -> None:
         for chunk, emb in zip(chunks, embeddings):
             self._chunks[chunk.id] = (chunk.snippet_id, project, emb)
 
     async def search(
         self,
-        query_embedding: list[float],
-        k: int = 10,
+        query_embedding: Iterable[float],
+        k: int | None = 10,
         *,
         project: str | None = None,
         filter_tags: Sequence[str] | None = None,
+        embedding_model: str | None = None,
     ) -> list[tuple[str, str, float]]:
         """Returns top-k (chunk_id, snippet_id, score) using dot-product similarity."""
         results: list[tuple[str, str, float]] = []
@@ -149,7 +150,7 @@ class InMemoryVecStore:
                 self._chunks[chunk_id] = (snippet_id, new_name, emb)
 
 
-class FixedEmbedder:
+class FixedEmbedder(protocols.Embedder):
     """Returns a constant embedding vector for all inputs."""
 
     def __init__(self, dim: int = 4, value: float = 0.5) -> None:
@@ -168,7 +169,7 @@ class FixedEmbedder:
         return [[self._value] * self._dim for _ in texts]
 
 
-class EchoGenerator:
+class EchoGenerator(protocols.Generator):
     """Returns a canned RAGResponse for testing."""
 
     async def generate(
@@ -183,7 +184,6 @@ class EchoGenerator:
             sources=list(context),
             query=query,
         )
-
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -280,28 +280,21 @@ async def test_add_snippet_stores_in_doc_store() -> None:
 @pytest.mark.asyncio
 async def test_add_snippet_indexes_chunks_in_vec_store() -> None:
     pipeline, _, vec_store = make_pipeline()
-    await pipeline.add_snippet("A short note.")
+    await pipeline.add_snippet("A short note.", project="proj")
     assert vec_store.count() >= 1
-
-
-@pytest.mark.asyncio
-async def test_add_snippet_uses_default_project_when_none() -> None:
-    pipeline, doc_store, _ = make_pipeline(default_project="default_proj")
-    snippet = await pipeline.add_snippet("Note with no explicit project.")
-    assert snippet.project == "default_proj"
-
+    
 
 @pytest.mark.asyncio
 async def test_add_snippet_respects_author() -> None:
     pipeline, _, _ = make_pipeline()
-    snippet = await pipeline.add_snippet("Note.", author="alice")
+    snippet = await pipeline.add_snippet("Note.", project="proj", author="alice")
     assert snippet.author == "alice"
 
 
 @pytest.mark.asyncio
 async def test_add_snippet_respects_tags() -> None:
     pipeline, _, _ = make_pipeline()
-    snippet = await pipeline.add_snippet("Note.", tags=["foo", "bar"])
+    snippet = await pipeline.add_snippet("Note.", project="proj", tags=["foo", "bar"])
     assert snippet.tags == ["foo", "bar"]
 
 
@@ -343,7 +336,7 @@ async def test_search_all_projects() -> None:
     pipeline, _, _ = make_pipeline()
     await pipeline.add_snippet("Note A.", project="alpha")
     await pipeline.add_snippet("Note B.", project="beta")
-    results = await pipeline.search("Note", project="__all__")
+    results = await pipeline.search("Note", project="all")
     projects_found = {r.snippet.project for r in results}
     assert "alpha" in projects_found
     assert "beta" in projects_found
@@ -357,8 +350,8 @@ async def test_search_all_projects() -> None:
 @pytest.mark.asyncio
 async def test_ask_returns_rag_response() -> None:
     pipeline, _, _ = make_pipeline()
-    await pipeline.add_snippet("The answer is 42.")
-    response = await pipeline.ask("What is the answer?")
+    await pipeline.add_snippet("The answer is 42.", project="proj")
+    response = await pipeline.ask("What is the answer?", project="proj")
     assert isinstance(response, models.RAGResponse)
     assert response.answer.startswith("Answer to:")
     assert response.query == "What is the answer?"
@@ -380,7 +373,7 @@ async def test_ask_sources_contain_snippets() -> None:
 @pytest.mark.asyncio
 async def test_revise_snippet_deactivates_old() -> None:
     pipeline, doc_store, _ = make_pipeline()
-    original = await pipeline.add_snippet("Original text.")
+    original = await pipeline.add_snippet("Original text.", project="proj")
     await pipeline.revise_snippet(original.id, "Updated text.")
     old = await doc_store.get(original.id)
     assert old is not None
@@ -390,7 +383,7 @@ async def test_revise_snippet_deactivates_old() -> None:
 @pytest.mark.asyncio
 async def test_revise_snippet_creates_new_active_snippet() -> None:
     pipeline, doc_store, _ = make_pipeline()
-    original = await pipeline.add_snippet("Original text.")
+    original = await pipeline.add_snippet("Original text.", project="proj")
     revised = await pipeline.revise_snippet(original.id, "Revised text.")
     assert revised.id != original.id
     assert revised.raw_text == "Revised text."
@@ -400,7 +393,7 @@ async def test_revise_snippet_creates_new_active_snippet() -> None:
 @pytest.mark.asyncio
 async def test_revise_snippet_removes_old_chunks() -> None:
     pipeline, _, vec_store = make_pipeline()
-    original = await pipeline.add_snippet("Original text.")
+    original = await pipeline.add_snippet("Original text.", project="proj")
     original_chunk_count = vec_store.count()
     await pipeline.revise_snippet(original.id, "Revised text.")
     # Old chunks removed, new chunks added; net count may be same or different
@@ -489,7 +482,7 @@ async def test_ingest_file_py_uses_code_type() -> None:
         f.write(code)
         tmp_path = Path(f.name)
     try:
-        snippets = await pipeline.ingest_file(tmp_path)
+        snippets = await pipeline.ingest_file(tmp_path, project="proj")
         assert len(snippets) == 1
         assert snippets[0].snippet_type == models.SnippetType.CODE
     finally:

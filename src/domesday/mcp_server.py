@@ -54,8 +54,9 @@ _PROJECT_SCHEMA = {
     "type": "string",
     "description": (
         "Project to search/add within. Defaults to the configured default project. "
-        "Use '__all__' to search across all projects."
+        "Use 'all' to search across all projects."
     ),
+    "default": "all",
 }
 
 
@@ -231,7 +232,7 @@ async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]:
             project=project,
             k=arguments.get("n_results", 5),
             tags=arguments.get("tags"),
-            min_score=cfg.min_score,
+            min_score=cfg.retrieval.min_score,
         )
         if not results:
             return [
@@ -254,7 +255,7 @@ async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]:
     if name == "add_snippet":
         snippet = await pipeline.add_snippet(
             arguments["text"],
-            project=arguments.get("project"),
+            project=arguments["project"],
             author=arguments.get("author", "mcp-client"),
             tags=arguments.get("tags", []),
         )
@@ -294,7 +295,7 @@ async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]:
         project = arguments.get("project")
         snippets = await pipeline.doc_store.list_recent(
             n=arguments.get("n", 10),
-            project=project if project != "__all__" else None,
+            project=project if project != "all" else None,
             author=arguments.get("author"),
         )
         if not snippets:
@@ -339,7 +340,7 @@ async def call_tool(name: str, arguments: dict) -> list[mcp.types.TextContent]:
             arguments["question"],
             project=project,
             k=arguments.get("n_context", 8),
-            min_score=cfg.min_score,
+            min_score=cfg.retrieval.min_score,
         )
         source_ids = ", ".join(
             f"snippet-{r.snippet.id[:8]} ({r.snippet.project})"

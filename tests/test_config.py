@@ -7,6 +7,7 @@ import textwrap
 from pathlib import Path
 
 import pytest
+import logging
 
 from domesday.config import Config
 
@@ -22,34 +23,19 @@ def test_config_loads() -> None:
 
 
 # ---------------------------------------------------------------------------
-# section() accessor
-# ---------------------------------------------------------------------------
-
-
-def test_config_section_returns_dict() -> None:
-    cfg = Config()
-    assert isinstance(cfg.section("embedder"), dict)
-
-
-def test_config_section_missing_returns_empty_dict() -> None:
-    cfg = Config()
-    assert cfg.section("nonexistent_section") == {}
-
-
-def test_config_section_does_not_mutate_internal_state() -> None:
-    cfg = Config()
-    sec = cfg.section("embedder")
-    sec["backend"] = "mutated"
-    assert cfg.section("embedder")["backend"] != "mutated"
-
-
-# ---------------------------------------------------------------------------
 # load() — no config file
 # ---------------------------------------------------------------------------
 
 
-def test_config_load_nonexistent_path() -> None:
+def test_config_load_nonexistent_path(caplog) -> None:
+    caplog.set_level(logging.WARNING)
     cfg = Config.load(Path("/nonexistent/path/domesday.toml"))
+    # this should log a warning, but not raise an exception:
+    assert any(
+        rec.levelname == "WARNING" and "Config file" in rec.message
+        for rec in caplog.records
+    )
+    # And it should still return a Config instance with defaults and env vars:
     assert isinstance(cfg, Config)
 
 
@@ -73,7 +59,7 @@ def test_config_load_from_toml_overrides_section_keys() -> None:
         tmp_path = Path(f.name)
     try:
         cfg = Config.load(tmp_path)
-        assert cfg.section("embedder")["backend"] == "local"
+        assert cfg.embedder.backend == "local"
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -93,7 +79,7 @@ def test_config_load_from_toml_preserves_unset_sections() -> None:
         tmp_path = Path(f.name)
     try:
         cfg = Config.load(tmp_path)
-        assert "backend" in cfg.section("document_store")
+        assert hasattr(cfg.document_store, "backend")
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -132,13 +118,13 @@ def test_config_env_override_default_project(monkeypatch: pytest.MonkeyPatch) ->
 def test_config_env_override_embedder_backend(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DOMESDAY_EMBEDDER__BACKEND", "openai")
     cfg = Config.load(Path("/nonexistent.toml"))
-    assert cfg.section("embedder")["backend"] == "openai"
+    assert cfg.embedder.backend == "openai"
 
 
 def test_config_env_override_embedder_model(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DOMESDAY_EMBEDDER__MODEL", "text-embedding-3-large")
     cfg = Config.load(Path("/nonexistent.toml"))
-    assert cfg.section("embedder")["model"] == "text-embedding-3-large"
+    assert cfg.embedder.model == "text-embedding-3-large"
 
 
 def test_config_env_override_unset_does_not_raise(

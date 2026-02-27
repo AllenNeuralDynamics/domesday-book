@@ -10,8 +10,8 @@ from domesday.core.models import Chunk, IngestResult, RAGResponse, SearchResult,
 
 
 def test_snippet_defaults() -> None:
-    s = Snippet(raw_text="hello")
-    assert s.project == "default"
+    s = Snippet(raw_text="hello", project="test")
+    assert s.project == "test"
     assert s.author == "anonymous"
     assert s.snippet_type == SnippetType.PROSE
     assert s.is_active is True
@@ -55,8 +55,8 @@ def test_ingest_result_ok() -> None:
 
 
 def test_rag_response_cited_ids() -> None:
-    s1 = Snippet(raw_text="a")
-    s2 = Snippet(raw_text="b")
+    s1 = Snippet(raw_text="a", project="test")
+    s2 = Snippet(raw_text="b", project="test")
     r1 = SearchResult(snippet=s1, chunk_text="a", score=0.9)
     r2 = SearchResult(snippet=s2, chunk_text="b", score=0.8)
     response = RAGResponse(answer="ans", sources=[r1, r2])
