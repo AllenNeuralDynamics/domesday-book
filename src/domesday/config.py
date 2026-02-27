@@ -97,7 +97,6 @@ class Config(BaseSettings):
         env_prefix="DOMESDAY_",
         env_nested_delimiter="__",
         toml_file=str(DEFAULT_CONFIG_PATH),
-        toml_file_encoding="utf-8",
     )
 
     data_dir: Path = Path("./data")

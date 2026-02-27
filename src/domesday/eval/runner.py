@@ -230,8 +230,8 @@ async def run_sweep(
 
         # Create a temporary config override
         cfg = config.Config.load(config_path)
-        cfg.raw["data_dir"] = str(run_data_dir)
-        cfg.raw["chunker"] = {"max_tokens": max_tokens, "overlap_tokens": overlap}
+        cfg.raw["data_dir"] = str(run_data_dir)  # type: ignore[union-attr]
+        cfg.raw["chunker"] = {"max_tokens": max_tokens, "overlap_tokens": overlap}  # type: ignore[union-attr]
 
         # Build pipeline manually with overridden chunker
         pl = await config.build_pipeline(config_path)

@@ -48,7 +48,7 @@ class VoyageEmbedder:
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
         import voyageai
 
-        client = voyageai.AsyncClient()  # type: ignore[attr-defined]
+        client = voyageai.AsyncClient()
         all_embeddings: list[list[float]] = []
 
         # Batch to stay within API limits
@@ -92,7 +92,13 @@ class OpenAIEmbedder:
         return OPENAI_DIMENSIONS.get(self.model, 1536)
 
     async def embed(self, texts: Sequence[str]) -> list[list[float]]:
-        import openai
+        try:
+            import openai # noqa
+        except ImportError:
+            raise ImportError(
+                "OpenAI embedder requires the 'openai' package. "
+                "Install with `uv add domesday[openai]` or choose a different embedder."
+            )
 
         client = openai.AsyncOpenAI()
         all_embeddings: list[list[float]] = []
@@ -144,7 +150,7 @@ class SentenceTransformerEmbedder:
 
             self._model_instance = sentence_transformers.SentenceTransformer(self.model)
             # Update dimension from the actual model
-            self._dimension = self._model_instance.get_sentence_embedding_dimension()  # type: ignore[assignment]
+            self._dimension = self._model_instance.get_sentence_embedding_dimension()
             logger.info("Loaded local model '%s' (dim=%d)", self.model, self._dimension)
         return self._model_instance
 

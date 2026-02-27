@@ -11,12 +11,12 @@ dependencies = [
     "anthropic>=0.40.0",
     "chromadb>=0.5.0",
     "pydantic-settings[toml]>=2.3.0",
-    "sentence-transformers>=3.0",
     "voyageai>=0.3.0",
     "typer>=0.9.0",
     "aiosqlite>=0.20.0",
     "python-dotenv>=1.0",
     "backports.strenum>=1.3.1; python_version<'3.11'",
+    "mcp>=1.26.0",
 ]
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -32,9 +32,9 @@ classifiers = [
 text = "MIT"
 
 [project.optional-dependencies]
+local = ["sentence-transformers>=3.0"]
 openai = ["openai>=1.0"]
-mcp = ["mcp>=1.0"]
-all = ["domesday[voyage,openai,mcp]"]
+all = ["domesday[local,openai]"]
 
 [dependency-groups]
 task_runner = ["poethepoet>=0.33.1"]
@@ -43,6 +43,7 @@ testing = [
     "pytest-asyncio>=0.24",
     "ruff>=0.8",
     "mypy>=1.13",
+    "ty>=0.0.19",
     "pytest-cov>=4.1.0",
 ]
 linting = ["black>=25.1.0", "isort>=6.0.1", "ruff>=0.11.2"]
@@ -126,6 +127,11 @@ ignore_missing_imports = true
 implicit_reexport = false
 exclude = ["src/npc_sessions/plots", "src/npc_sessions/scripts"]
 
+[tool.ty.environment]
+python-version = "3.11"
+
+[tool.ty.rules]
+unresolved-import = "ignore"
 
 [tool.bumpversion]
 tag = true
@@ -143,8 +149,9 @@ post_commit_hooks = ["git push origin main", "git push --tags"]
 
 [tool.poe.tasks]
 mypy = "mypy src --install-types --non-interactive"
+ty = "ty check"
 pytest = "pytest --cov-report term-missing:skip-covered --cov-report=html"
-test = ["mypy", "pytest"]
+test = ["ty", "pytest"]
 ruff = "ruff check src --fix-only"
 black = "black src"
 format = ["ruff", "black"]

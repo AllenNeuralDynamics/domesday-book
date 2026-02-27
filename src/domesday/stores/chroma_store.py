@@ -104,7 +104,7 @@ class ChromaVectorStore:
 
         self.collection.add(
             ids=[c.id for c in chunks],
-            embeddings=[list(e) for e in embeddings],  # type: ignore[arg-type]
+            embeddings=[list(e) for e in embeddings],
             documents=[c.text for c in chunks],
             metadatas=[
                 {
@@ -157,10 +157,10 @@ class ChromaVectorStore:
         )
 
         results = self.collection.query(
-            query_embeddings=[query_embedding],  # type: ignore[arg-type]
+            query_embeddings=[query_embedding],
             n_results=min(k, self.collection.count() or 1),
             include=["metadatas", "distances", "documents"],
-            where=where_filter,  # type: ignore[arg-type]
+            where=where_filter,
         )
 
         output: list[tuple[str, str, float]] = []
@@ -209,7 +209,7 @@ class ChromaVectorStore:
 
         self.collection.update(
             ids=results["ids"],
-            metadatas=updated_metadatas,  # type: ignore[arg-type]
+            metadatas=updated_metadatas,
         )
         logger.info(
             "Renamed project '%s' → '%s' in Chroma (%d chunks)",
