@@ -72,7 +72,7 @@ class Snippet:
             author=str(d.get("author", "anonymous")),
             created_at=datetime.fromisoformat(str(d["created_at"])),
             updated_at=datetime.fromisoformat(str(d["updated_at"])),
-            tags=list(d.get("tags", [])),  # type: ignore[arg-type]
+            tags=list(d.get("tags", [])),  # type: ignore[call-overload]
             source_file=str(d["source_file"]) if d.get("source_file") else None,
             parent_id=str(d["parent_id"]) if d.get("parent_id") else None,
             is_active=bool(d.get("is_active", True)),

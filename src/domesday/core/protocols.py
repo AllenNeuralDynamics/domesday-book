@@ -54,6 +54,10 @@ class DocumentStore(Protocol):
         """Rename all snippets from old_name to new_name. Returns count updated."""
         ...
 
+    async def count(
+        self, *, active_only: bool = True, project: str | None = None
+    ) -> int: ...
+
 
 # ---------------------------------------------------------------------------
 # Vector storage (embeddings + similarity search)
@@ -86,6 +90,8 @@ class VectorStore(Protocol):
     async def delete_by_snippet(self, snippet_id: str) -> None:
         """Remove all chunks for a given snippet (used on edit/deactivate)."""
         ...
+
+    def count(self) -> int: ...
 
 
 # ---------------------------------------------------------------------------

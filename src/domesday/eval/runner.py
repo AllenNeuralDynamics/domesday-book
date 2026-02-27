@@ -20,8 +20,10 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from tests.fixtures import test_corpus
+if TYPE_CHECKING:
+    from tests.fixtures import test_corpus as test_corpus_module
 
 from domesday import chunking, config
 from domesday.core import models, pipeline
@@ -42,9 +44,11 @@ class EvalRunner:
     async def create(
         cls,
         config_path: Path | None = None,
-        snippets: Sequence[test_corpus.TestSnippet] | None = None,
+        snippets: Sequence[test_corpus_module.TestSnippet] | None = None,
     ) -> EvalRunner:
         """Build pipeline and ingest test corpus."""
+        from tests.fixtures import test_corpus
+
         pl = await config.build_pipeline(config_path)
         snippets = snippets or test_corpus.SNIPPETS
         id_map: dict[str, str] = {}
@@ -82,7 +86,7 @@ class EvalRunner:
 
     async def run_query(
         self,
-        eq: test_corpus.EvalQuery,
+        eq: test_corpus_module.EvalQuery,
         *,
         k: int = 10,
         min_score: float = 0.0,
@@ -104,7 +108,7 @@ class EvalRunner:
 
     async def run_all(
         self,
-        queries: Sequence[test_corpus.EvalQuery] | None = None,
+        queries: Sequence[test_corpus_module.EvalQuery] | None = None,
         *,
         k: int = 10,
         min_score: float = 0.0,
@@ -119,6 +123,8 @@ class EvalRunner:
                    judge score each generated answer. Slower and costs API
                    calls, but measures generation quality — not just retrieval.
         """
+        from tests.fixtures import test_corpus
+
         queries = queries or test_corpus.EVAL_QUERIES
         eval_run = eval_models.EvalRun(run_name=run_name, params=params or {})
 
@@ -203,6 +209,8 @@ async def run_sweep(
     (different chunking → different embeddings). min_score and k are cheap to
     sweep because they only affect the retrieval filter.
     """
+    from tests.fixtures import test_corpus
+
     sweep = sweep_config or SweepConfig.quick()
     all_runs: list[eval_models.EvalRun] = []
 
@@ -298,6 +306,8 @@ async def run_sweep(
 
 async def interactive(config_path: Path | None = None) -> None:
     """Interactive REPL for inspecting retrieval results."""
+    from tests.fixtures import test_corpus
+
     runner = await EvalRunner.create(config_path)
 
     print("\n domesday eval — interactive mode")
