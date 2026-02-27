@@ -77,7 +77,7 @@ class ClaudeGenerator:
         )
 
         answer_text = "".join(
-            block.text for block in message.content if block.type == "text" # type: ignore[union-attr]
+            block.text for block in message.content if block.type == "text"  # type: ignore[union-attr]
         )
 
         logger.info(

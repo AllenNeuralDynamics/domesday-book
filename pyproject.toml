@@ -1,6 +1,6 @@
 [project]
 name = "domesday"
-version = "0.1.1"
+version = "0.1.2"
 description = "A shared knowledge base that keeps AI tools informed of your team's project-specific information."
 authors = [
     { name = "bjhardcastle", email = "ben.hardcastle@alleninstitute.org" },
