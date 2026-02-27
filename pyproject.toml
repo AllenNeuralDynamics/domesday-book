@@ -1,0 +1,140 @@
+[project]
+name = "domesday"
+version = "0.1.0"
+description = "A shared knowledge base that keeps AI tools informed of your team's project-specific information."
+authors = [
+    { name = "bjhardcastle", email = "ben.hardcastle@alleninstitute.org" },
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "anthropic>=0.40.0",
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0",
+    "voyageai>=0.3.0",
+    "typer>=0.9.0",
+    "aiosqlite>=0.20.0",
+    "python-dotenv>=1.0",
+    "backports.strenum>=1.3.1; python_version<'3.11'",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0"]
+mcp = ["mcp>=1.0"]
+all = ["domesday[voyage,openai,mcp]"]
+
+[dependency-groups]
+task_runner = ["poethepoet>=0.33.1"]
+testing = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+    "pytest-cov>=4.1.0",
+]
+linting = ["black>=25.1.0", "isort>=6.0.1", "ruff>=0.11.2"]
+bump = ["bump-my-version>=1.1.1", "git-changelog>=2.5.3"]
+
+[project.scripts]
+domes = "domesday.cli:main"
+task = "poethepoet:main"
+
+[build-system]
+requires = ["uv_build>=0.8.12,<0.9.0"]
+build-backend = "uv_build"
+
+[tool.uv]
+package = true
+default-groups = "all"
+
+[tool.ruff]
+fix = true
+line-length = 100
+ignore-init-module-imports = true
+select = ["ANN", "B", "C", "E", "F", "I", "RUF100", "N", "UP", "W", "YTT"]
+extend-exclude = ["tests"]
+src = ["src", "tests"]
+
+[tool.ruff.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.black]
+target-version = ["py311"]
+
+[tool.coverage.paths]
+source = ["src"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+skip_covered = true
+show_missing = true
+skip_empty = true
+exclude_also = [
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "@(abc.)?abstractmethod",
+    "@typing.runtime_checkable",
+]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+    "--doctest-modules",
+    "--ignore-glob=*scripts*,*examples*",
+    "--cov",
+    "--cov-report=xml",
+    "--cov-config=pyproject.toml",
+    "--doctest-glob=*README.md",
+    "-x",
+    "-n=auto",
+]
+doctest_optionflags = [
+    "NORMALIZE_WHITESPACE",
+    "IGNORE_EXCEPTION_DETAIL",
+    "ELLIPSIS",
+]
+testpaths = ["src", "tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+check_untyped_defs = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+disallow_untyped_decorators = false
+disallow_any_unimported = false
+warn_return_any = false
+warn_unused_ignores = true
+no_implicit_optional = true
+show_error_codes = true
+ignore_missing_imports = true
+implicit_reexport = false
+exclude = ["src/npc_sessions/plots", "src/npc_sessions/scripts"]
+
+
+[tool.bumpversion]
+tag = true
+allow_dirty = true
+commit = true
+commit_args = "-a"
+message = "Bump version: {current_version} → {new_version} [skip actions]"
+pre_commit_hooks = [
+    "uv lock --upgrade-package npc_sessions",
+    "git-changelog -o CHANGELOG.md",
+    "uv build",
+    "uv publish",
+]
+post_commit_hooks = ["git push origin main", "git push --tags"]
+
+[tool.poe.tasks]
+mypy = "mypy src --install-types --non-interactive"
+pytest = "pytest --cov-report term-missing:skip-covered --cov-report=html"
+test = ["mypy", "pytest"]
+ruff = "ruff check src --fix-only"
+black = "black src"
+format = ["ruff", "black"]
+bump_pub_tag = "bump-my-version bump patch"
+release = ["format", "bump_pub_tag"]

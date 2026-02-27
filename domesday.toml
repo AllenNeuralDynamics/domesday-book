@@ -1,0 +1,34 @@
+# domesday configuration
+# Place this file in your project root, or point to it with --config
+
+data_dir = "./data"
+default_project = "main"  # used when --project is not specified
+
+[document_store]
+backend = "sqlite"
+# path = "./data/domesday.db"  # default: {data_dir}/domesday.db
+
+[vector_store]
+backend = "chroma"
+# path = "./data/chroma"       # default: {data_dir}/chroma
+# collection_name = "domesday"
+
+[embedder]
+backend = "voyage"             # voyage | openai | local
+model = "voyage-4-large"       # voyage-4-large | text-embedding-3-small | all-MiniLM-L6-v2
+
+[generator]
+backend = "claude"
+model = "claude-sonnet-4-6"
+
+[chunker]
+max_tokens = 400
+overlap_tokens = 50
+
+[retrieval]
+min_score = 0.1  # cosine similarity threshold (0.0–1.0); results below are discarded entirely
+
+[reranker]
+enabled = false                 # set true to enable LLM-based reranking of retrieved chunks
+model = "claude-haiku-4-5"
+relevance_threshold = 0.5      # LLM relevance score cutoff
