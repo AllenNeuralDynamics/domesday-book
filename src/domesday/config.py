@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
 
 import pydantic
 from pydantic_settings import (
@@ -125,7 +124,9 @@ class Config(BaseSettings):
         if path is None:
             return cls()
         if not path.exists():
-            logger.warning("Config file %s not found, falling back to defaults and env vars", path)
+            logger.warning(
+                "Config file %s not found, falling back to defaults and env vars", path
+            )
             return cls()
         # Inject a custom TOML source for the given path
         toml_source = TomlConfigSettingsSource(cls, toml_file=path)
@@ -160,12 +161,14 @@ def _build_doc_store(cfg: Config) -> sqlite_store.SQLiteDocumentStore:
 
     raise ValueError(f"Unknown document_store backend: {cfg.document_store.backend}")
 
+
 def _normalize_vec_store_collection_name(model: str) -> str:
     """Some share the same embedding space, so we normalize to the
     base name for storage collection."""
     if model.startswith("voyage-4"):
         return "voyage-4"
     return model
+
 
 def _build_vec_store(cfg: Config) -> protocols.VectorStore:
 
@@ -256,7 +259,7 @@ async def build_pipeline(config_path: Path | None = None) -> core_pipeline.Pipel
     generator = _build_generator(cfg)
     chunker = _build_chunker(cfg)
     reranker = _build_reranker(cfg)
-    
+
     pipeline = core_pipeline.Pipeline(
         doc_store=doc_store,
         vec_store=vec_store,

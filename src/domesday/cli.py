@@ -239,7 +239,11 @@ def search(
             pipeline = await config.build_pipeline(ctx.obj["config_path"])
             project = "all" if all_projects else ctx.obj["project"]
             results = await pipeline.search(
-                query, project=project, k=n, tags=tag_list, min_score=cfg.retrieval.min_score
+                query,
+                project=project,
+                k=n,
+                tags=tag_list,
+                min_score=cfg.retrieval.min_score,
             )
 
         if not results:

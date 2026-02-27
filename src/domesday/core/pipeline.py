@@ -90,7 +90,10 @@ class Pipeline:
 
             # 4. Index in vector store with project metadata
             await self.vec_store.add_chunks(
-                chunks=chunks, embeddings=embeddings, project=project, embedding_model=self.embedder.model
+                chunks=chunks,
+                embeddings=embeddings,
+                project=project,
+                embedding_model=self.embedder.model,
             )
             logger.debug("Indexed %d chunks in vector store", len(chunks))
 
@@ -339,7 +342,7 @@ class Pipeline:
         question: str,
         *,
         project: str | None = None,
-        k: int | None= 10,
+        k: int | None = 10,
         tags: Sequence[str] | None = None,
         min_score: float = 0.0,
         system_prompt: str | None = None,
