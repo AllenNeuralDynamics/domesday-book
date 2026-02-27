@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-import tempfile
+from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -12,7 +13,7 @@ from domesday.stores.sqlite_store import SQLiteDocumentStore
 
 
 @pytest.fixture
-async def store(tmp_path: Path) -> SQLiteDocumentStore:
+async def store(tmp_path: Path) -> AsyncGenerator[SQLiteDocumentStore, None]:
     db_path = tmp_path / "test.db"
     s = SQLiteDocumentStore(path=db_path)
     await s.initialize()
@@ -20,8 +21,8 @@ async def store(tmp_path: Path) -> SQLiteDocumentStore:
     await s.close()
 
 
-def _make_snippet(**kwargs) -> Snippet:
-    defaults = dict(raw_text="Some text.", project="proj")
+def _make_snippet(**kwargs: Any) -> Snippet:
+    defaults: dict[str, Any] = dict(raw_text="Some text.", project="proj")
     defaults.update(kwargs)
     return Snippet(**defaults)
 
