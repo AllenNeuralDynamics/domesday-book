@@ -156,7 +156,7 @@ class Config(BaseSettings):
         val = getattr(self, name, None)
         if val is None:
             return {}
-        if isinstance(val, BaseModel):
+        if isinstance(val, pydantic.BaseModel):
             return val.model_dump()
         return {}
 
